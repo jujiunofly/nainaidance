@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4efe6">
+  <title>奶奶如厕记录</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232f6b51'/%3E%3Cpath d='M9 6h9a2 2 0 0 1 2 2v6H9V6Zm-1 8h17c0 6-3.2 10-8.5 10H12a3 3 0 0 1-3-3v-2m6 5v4m-4 0h8' fill='none' stroke='%23fffdf9' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --surface: #fffdf9;
+      --surface-soft: #f8f3ea;
+      --ink: #20362d;
+      --muted: #708078;
+      --line: #e8dfd2;
+      --green: #2f6b51;
+      --green-deep: #234f3c;
+      --green-soft: #e8f2eb;
+      --green-pale: #f2f8f4;
+      --clay: #bd684d;
+      --clay-soft: #f8ebe5;
+      --amber-soft: #fbf1dd;
+      --danger: #a64d3d;
+      --shadow: 0 18px 48px rgba(72, 57, 38, .08);
+      --shadow-soft: 0 8px 22px rgba(72, 57, 38, .06);
+      --radius-xl: 26px;
+      --radius-lg: 19px;
+      --radius-md: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      overflow: hidden;
+      color: var(--ink);
+      font-family: "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+      background:
+        radial-gradient(circle at 7% 5%, rgba(188, 214, 196, .52), transparent 24rem),
+        radial-gradient(circle at 94% 0%, rgba(236, 207, 188, .43), transparent 22rem),
+        linear-gradient(180deg, #f8f4ed 0%, var(--bg) 58%, #f2ece2 100%);
+      background-attachment: fixed;
+    }
+    button, summary { font: inherit; }
+    button { color: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    button:focus-visible, summary:focus-visible { outline: 3px solid rgba(47, 107, 81, .28); outline-offset: 3px; }
+    [hidden] { display: none !important; }
+
+    .app-shell {
+      width: min(1240px, 100%);
+      height: 100svh;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .topbar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 48px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      display: grid; place-items: center; flex: 0 0 auto;
+      width: 43px; height: 43px; border-radius: 14px;
+      color: #fffdf9; background: var(--green);
+      box-shadow: 0 8px 20px rgba(47, 107, 81, .2);
+    }
+    .brand-mark svg { width: 25px; height: 25px; }
+    .brand-title {
+      margin: 0;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+      font-size: 20px; font-weight: 700; letter-spacing: .02em; line-height: 1.2;
+    }
+    .brand-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+
+    .top-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .local-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 10px; border: 1px solid rgba(47, 107, 81, .13);
+      border-radius: 999px; color: var(--green-deep); background: rgba(255, 253, 249, .7);
+      font-size: 11px; font-weight: 700; white-space: nowrap;
+    }
+    .local-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(47, 107, 81, .1); }
+    .local-pill.is-warning { color: #8a5b1e; border-color: #ead6a9; background: var(--amber-soft); }
+    .local-pill.is-warning .dot { background: #b47a2d; }
+    .telegram-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 9px; border: 1px solid rgba(47, 107, 81, .13);
+      border-radius: 999px; color: var(--green-deep); background: var(--green-soft);
+      font-size: 10px; font-weight: 700; white-space: nowrap;
+    }
+    .telegram-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .telegram-pill.is-sending { color: #8a5b1e; background: var(--amber-soft); border-color: #ead6a9; }
+    .telegram-pill.is-error { color: var(--danger); background: #f8ebe5; border-color: #e7c4b8; }
+
+    .data-menu { position: relative; }
+    .data-menu summary {
+      list-style: none; cursor: pointer; padding: 7px 11px;
+      border: 1px solid var(--line); border-radius: 999px;
+      color: #5d6b63; background: rgba(255, 253, 249, .7);
+      font-size: 11px; font-weight: 700; user-select: none;
+    }
+    .data-menu summary::-webkit-details-marker { display: none; }
+    .data-menu[open] summary { background: var(--surface); border-color: #d4c8b8; }
+    .data-popover {
+      position: absolute; z-index: 30; right: 0; top: calc(100% + 7px);
+      width: 178px; padding: 7px;
+      border: 1px solid var(--line); border-radius: 14px;
+      background: var(--surface); box-shadow: 0 18px 44px rgba(47, 40, 31, .16);
+    }
+    .data-popover button {
+      display: block; width: 100%; padding: 8px 9px; border: 0; border-radius: 8px;
+      text-align: left; color: #526158; background: transparent;
+      font-size: 12px; cursor: pointer;
+    }
+    .data-popover button:hover { background: var(--surface-soft); }
+    .data-popover button.danger { color: var(--danger); }
+
+    .dashboard {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid rgba(216, 204, 188, .72);
+      border-radius: var(--radius-xl);
+      background: rgba(255, 253, 249, .93);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .today-card {
+      min-height: 0;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+    }
+    .today-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .eyebrow { margin: 0 0 5px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+    .today-date {
+      margin: 0;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+      font-size: 29px; font-weight: 700; line-height: 1.15;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      flex: 0 0 auto; padding: 7px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; white-space: nowrap;
+    }
+    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge.neutral { color: #776d61; background: #f2ece3; }
+    .badge.yes { color: var(--green-deep); background: var(--green-soft); }
+    .badge.no { color: #8b4d39; background: var(--clay-soft); }
+
+    .timer-block {
+      margin-top: 15px;
+      padding: 16px 17px;
+      border: 1px solid rgba(47, 107, 81, .13);
+      border-radius: 19px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(217, 233, 220, .78), transparent 9rem),
+        var(--green-pale);
+    }
+    .timer-label { margin: 0; color: var(--green-deep); font-size: 11px; font-weight: 700; letter-spacing: .06em; }
+    .timer-value {
+      margin: 7px 0 5px;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+      font-size: clamp(31px, 3.2vw, 44px);
+      font-weight: 700; line-height: 1.08; letter-spacing: -.02em;
+    }
+    .timer-detail { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .timer-block.is-empty .timer-value { font-size: 26px; }
+    .timer-block[data-long="true"] { border-color: #e7d2a7; background: radial-gradient(circle at 100% 0%, rgba(250, 231, 194, .82), transparent 9rem), var(--amber-soft); }
+    .timer-block[data-long="true"] .timer-label { color: #7b571f; }
+
+    .today-question { margin: 17px 0 9px; font-size: 13px; font-weight: 700; }
+    .choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .choice-button {
+      display: flex; align-items: center; gap: 9px;
+      min-height: 68px; padding: 10px;
+      border: 1.5px solid var(--line); border-radius: 16px;
+      text-align: left; background: #fbf8f2; cursor: pointer;
+      transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+    }
+    .choice-button:hover { transform: translateY(-1px); border-color: #cfc3b2; box-shadow: var(--shadow-soft); }
+    .choice-button:active { transform: translateY(0); }
+    .choice-icon {
+      display: grid; place-items: center; flex: 0 0 auto;
+      width: 34px; height: 34px; border-radius: 50%;
+      color: #746b5f; background: #eee8de;
+    }
+    .choice-icon svg { width: 19px; height: 19px; }
+    .choice-copy { display: grid; gap: 2px; min-width: 0; }
+    .choice-copy strong { font-size: 14px; line-height: 1.25; white-space: nowrap; }
+    .choice-copy small { color: var(--muted); font-size: 9px; line-height: 1.3; }
+    .choice-button[data-today-status="yes"].is-active { border-color: rgba(47, 107, 81, .55); background: var(--green-pale); }
+    .choice-button[data-today-status="yes"].is-active .choice-icon { color: var(--green-deep); background: #d8eadf; }
+    .choice-button[data-today-status="no"].is-active { border-color: rgba(189, 104, 77, .55); background: #fcf4ef; }
+    .choice-button[data-today-status="no"].is-active .choice-icon { color: #8f4d38; background: #f3ddd3; }
+
+    .month-mini {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px; margin-top: 14px;
+    }
+    .mini-stat { padding: 8px 5px; border-radius: 11px; text-align: center; background: var(--surface-soft); }
+    .mini-stat strong {
+      display: block;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+      font-size: 18px; line-height: 1;
+    }
+    .mini-stat span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+
+    .attention {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 9px; padding: 7px 9px; border-radius: 10px;
+      color: #74521f; background: var(--amber-soft); font-size: 10px; line-height: 1.4;
+    }
+    .attention svg { flex: 0 0 auto; width: 13px; height: 13px; }
+
+    .today-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; margin-top: auto; padding-top: 11px;
+      border-top: 1px dashed var(--line); color: var(--muted); font-size: 9px; line-height: 1.4;
+    }
+    .text-button { padding: 4px 0; border: 0; background: transparent; font-size: 11px; font-weight: 700; cursor: pointer; }
+    .text-button.danger { color: var(--danger); }
+    .text-button:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    .calendar-card {
+      min-height: 0;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .calendar-header { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .calendar-header h2 {
+      margin: 0;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+      font-size: 23px; line-height: 1.2;
+    }
+    .calendar-nav { display: flex; align-items: center; gap: 6px; }
+    .icon-button, .nav-button, .month-today {
+      display: inline-grid; place-items: center;
+      border: 1px solid var(--line); color: var(--ink); background: #fbf8f2;
+      cursor: pointer; transition: background .16s ease, border-color .16s ease, transform .16s ease;
+    }
+    .icon-button, .nav-button { width: 34px; height: 34px; padding: 0; border-radius: 10px; }
+    .nav-button:hover, .month-today:hover, .icon-button:hover { border-color: #d0c4b3; background: #fffefb; }
+    .nav-button:active, .month-today:active, .icon-button:active { transform: scale(.97); }
+    .nav-button:disabled { opacity: .32; cursor: not-allowed; transform: none; }
+    .nav-button svg, .icon-button svg { width: 16px; height: 16px; }
+    .month-today { height: 34px; padding: 0 11px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+
+    .weekday-row {
+      flex: 0 0 auto;
+      display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px; margin-top: 11px;
+    }
+    .weekday { padding: 2px 0; color: var(--muted); font-size: 10px; font-weight: 700; text-align: center; }
+    .calendar-grid {
+      flex: 1 1 auto; min-height: 0; margin-top: 5px;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      grid-template-rows: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .day-spacer { min-height: 0; }
+    .day-cell {
+      position: relative; display: block; min-width: 0; min-height: 0;
+      padding: 8px; border: 1px solid transparent; border-radius: 12px;
+      color: var(--ink); text-align: left; background: var(--surface-soft);
+      cursor: pointer; overflow: hidden;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .day-cell:hover:not(:disabled) { transform: translateY(-1px); border-color: #d6cbbb; box-shadow: var(--shadow-soft); }
+    .day-cell:disabled { opacity: .3; cursor: default; }
+    .day-cell.has-yes { background: var(--green-soft); }
+    .day-cell.has-no { background: var(--clay-soft); }
+    .day-cell.is-today { box-shadow: inset 0 0 0 2px rgba(32, 54, 45, .58); }
+    .day-cell.is-selected { outline: 2px solid var(--green); outline-offset: 1px; }
+    .day-number {
+      position: relative; z-index: 1;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+      font-size: 14px; font-weight: 700;
+    }
+    .day-mark {
+      position: absolute; right: 7px; bottom: 7px;
+      display: grid; place-items: center;
+      width: 19px; height: 19px; border-radius: 50%;
+    }
+    .day-cell.has-yes .day-mark { color: var(--green-deep); background: rgba(255, 255, 255, .62); }
+    .day-cell.has-no .day-mark { color: #914d38; background: rgba(255, 255, 255, .58); }
+    .day-mark svg { width: 12px; height: 12px; }
+
+    .calendar-legend {
+      flex: 0 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      margin-top: 9px; padding-top: 8px;
+      border-top: 1px dashed var(--line); color: var(--muted); font-size: 9px;
+    }
+    .legend-items { display: flex; align-items: center; gap: 13px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .legend-swatch { width: 8px; height: 8px; border-radius: 2px; }
+    .legend-swatch.yes { background: #bdd8c7; }
+    .legend-swatch.no { background: #ebc9bb; }
+
+    .day-dialog {
+      width: min(410px, calc(100vw - 28px));
+      max-height: calc(100svh - 28px);
+      margin: auto; padding: 0; overflow: auto;
+      border: 0; border-radius: 22px; color: var(--ink); background: var(--surface);
+      box-shadow: 0 28px 80px rgba(40, 33, 24, .25);
+    }
+    .day-dialog::backdrop { background: rgba(35, 43, 38, .42); backdrop-filter: blur(3px); }
+    .day-dialog form { padding: 22px; }
+    .dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .dialog-head h2 {
+      margin: 0;
+      font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+      font-size: 21px; line-height: 1.35;
+    }
+    .dialog-subtext { margin: 8px 0 16px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .dialog-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .dialog-choice {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      min-height: 48px; padding: 9px;
+      border: 1.5px solid var(--line); border-radius: 13px;
+      color: #6f675d; background: #fbf8f2; font-size: 12px; font-weight: 700;
+      cursor: pointer;
+    }
+    .dialog-choice svg { width: 17px; height: 17px; }
+    .dialog-choice[data-day-status="yes"].is-active { border-color: rgba(47, 107, 81, .55); color: var(--green-deep); background: var(--green-soft); }
+    .dialog-choice[data-day-status="no"].is-active { border-color: rgba(189, 104, 77, .55); color: #8f4d38; background: var(--clay-soft); }
+    .dialog-actions {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line);
+    }
+    .dialog-action-right { display: flex; gap: 7px; margin-left: auto; }
+    .button {
+      min-height: 36px; padding: 0 13px; border: 1px solid transparent; border-radius: 10px;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .button-primary { color: #fffdf9; background: var(--green); box-shadow: 0 6px 15px rgba(47, 107, 81, .18); }
+    .button-primary:hover { background: var(--green-deep); }
+    .button-quiet { border-color: var(--line); color: #5f6d65; background: #fbf8f2; }
+    .button-quiet:hover { border-color: #d0c4b3; background: #fffefb; }
+
+    .toast {
+      position: fixed; z-index: 50; left: 50%; bottom: 20px;
+      max-width: calc(100vw - 28px); padding: 9px 14px; border-radius: 999px;
+      color: #fffdf9; background: rgba(32, 54, 45, .96);
+      box-shadow: 0 10px 28px rgba(32, 54, 45, .24);
+      font-size: 11px; font-weight: 600; text-align: center;
+      opacity: 0; pointer-events: none; transform: translate(-50%, 10px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 760px) {
+      .app-shell { padding: 9px 10px 10px; gap: 8px; }
+      .topbar { min-height: 40px; }
+      .brand { gap: 9px; }
+      .brand-mark { width: 37px; height: 37px; border-radius: 12px; }
+      .brand-mark svg { width: 22px; height: 22px; }
+      .brand-title { font-size: 17px; }
+      .brand-subtitle { display: none; }
+      .local-pill { display: none; }
+      .local-pill { padding: 6px 8px; font-size: 10px; }
+      .data-menu summary { padding: 6px 9px; font-size: 10px; }
+      .dashboard { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+      .today-card { padding: 13px; border-radius: 20px; overflow: hidden; }
+      .today-date { font-size: 22px; }
+      .badge { padding: 6px 8px; font-size: 10px; }
+      .timer-block {
+        margin-top: 8px; padding: 10px 12px; border-radius: 14px;
+        display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px;
+      }
+      .timer-label { grid-column: 1; }
+      .timer-value { grid-column: 1; margin: 3px 0 0; font-size: 28px; }
+      .timer-detail { grid-column: 2; grid-row: 1 / span 2; max-width: 125px; text-align: right; }
+      .today-question { margin: 9px 0 6px; font-size: 11px; }
+      .choice-button { min-height: 48px; padding: 7px 8px; border-radius: 12px; gap: 7px; }
+      .choice-icon { width: 28px; height: 28px; }
+      .choice-icon svg { width: 16px; height: 16px; }
+      .choice-copy strong { font-size: 12px; }
+      .choice-copy small { display: none; }
+      .month-mini { display: none; }
+      .attention { margin-top: 6px; padding: 5px 7px; font-size: 9px; }
+      .today-footer { margin-top: 7px; padding-top: 6px; font-size: 8px; }
+      .today-footer .text-button { font-size: 10px; }
+      .today-footer-note { display: none; }
+      .calendar-card { padding: 12px; border-radius: 20px; }
+      .calendar-header h2 { font-size: 19px; }
+      .calendar-nav { gap: 4px; }
+      .icon-button, .nav-button { width: 29px; height: 29px; border-radius: 8px; }
+      .month-today { height: 29px; padding: 0 8px; border-radius: 8px; font-size: 10px; }
+      .weekday-row, .calendar-grid { gap: 4px; }
+      .weekday-row { margin-top: 7px; }
+      .weekday { font-size: 9px; }
+      .day-cell { padding: 5px; border-radius: 8px; }
+      .day-number { font-size: 11px; }
+      .day-mark { right: 4px; bottom: 4px; width: 15px; height: 15px; }
+      .day-mark svg { width: 10px; height: 10px; }
+      .calendar-legend { margin-top: 6px; padding-top: 5px; font-size: 8px; }
+      .legend-items { gap: 9px; }
+    }
+
+    @media (max-width: 390px) {
+      .local-pill { display: none; }
+      .data-menu summary { padding: 6px 8px; }
+      .timer-value { font-size: 25px; }
+      .timer-detail { max-width: 108px; font-size: 9px; }
+      .month-today { display: none; }
+    }
+
+    @media (max-height: 700px) and (min-width: 761px) {
+      .app-shell { padding-top: 11px; padding-bottom: 11px; gap: 9px; }
+      .topbar { min-height: 42px; }
+      .today-card { padding: 17px; }
+      .timer-block { margin-top: 11px; padding: 12px 14px; }
+      .timer-value { font-size: 34px; }
+      .today-question { margin-top: 11px; }
+      .choice-button { min-height: 57px; }
+      .month-mini { margin-top: 9px; }
+      .mini-stat { padding: 6px 4px; }
+      .calendar-card { padding: 14px 16px; }
+      .calendar-header h2 { font-size: 21px; }
+      .calendar-legend { margin-top: 6px; padding-top: 5px; }
+    }
+
+    @media (max-height: 610px) and (max-width: 760px) {
+      .calendar-legend { display: none; }
+      .today-question { display: none; }
+      .today-footer { display: none; }
+      .timer-block { margin-top: 6px; padding: 8px 10px; }
+      .choice-button { min-height: 42px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 5h9a2 2 0 0 1 2 2v6H9V5Z"></path>
+            <path d="M8 13h17c0 6-3.2 10-8.5 10H12a3 3 0 0 1-3-3v-2"></path>
+            <path d="M15 23v4M11 27h8"></path>
+            <path d="M23 16h2"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">奶奶如厕记录</h1>
+          <p class="brand-subtitle">每天一点，清楚知道距上次如厕多久</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="telegram-pill" id="telegramPill" title="每次记录会自动发送到 Telegram"><span class="dot" aria-hidden="true"></span><span id="telegramText">TG 通知</span></span>
+        <span class="local-pill" id="storagePill"><span class="dot" aria-hidden="true"></span><span id="storageText">本机保存</span></span>
+        <details class="data-menu" id="dataMenu">
+          <summary>数据</summary>
+          <div class="data-popover">
+            <button id="exportCsv" type="button">导出 CSV</button>
+            <button id="backupData" type="button">备份数据</button>
+            <button id="restoreData" type="button">恢复备份</button>
+            <button class="danger" id="clearAll" type="button">清空全部</button>
+            <input id="restoreInput" type="file" accept=".json,application/json" hidden>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="card today-card" aria-label="今日记录">
+        <div class="today-top">
+          <div>
+            <p class="eyebrow">今天 · <span id="todayWeekday">星期日</span></p>
+            <h2 class="today-date" id="todayDate">10月18日</h2>
+          </div>
+          <span class="badge neutral" id="todayBadge">待记录</span>
+        </div>
+
+        <div class="timer-block is-empty" id="timerBlock" data-long="false">
+          <p class="timer-label">距离上次如厕</p>
+          <p class="timer-value" id="lastDuration">暂无记录</p>
+          <p class="timer-detail" id="lastDetail">点击“已如厕”开始计时</p>
+        </div>
+
+        <p class="today-question">奶奶今天上厕所了吗？</p>
+        <div class="choice-grid" role="group" aria-label="选择奶奶今天的如厕情况">
+          <button class="choice-button" type="button" data-today-status="yes" aria-pressed="false">
+            <span class="choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="m8 12 2.6 2.6L16.5 9"></path>
+              </svg>
+            </span>
+            <span class="choice-copy"><strong>已如厕</strong><small>刚去过就点这里</small></span>
+          </button>
+          <button class="choice-button" type="button" data-today-status="no" aria-pressed="false">
+            <span class="choice-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M8 12h8"></path>
+              </svg>
+            </span>
+            <span class="choice-copy"><strong>未如厕</strong><small>今天还没有</small></span>
+          </button>
+        </div>
+
+        <div class="month-mini" aria-label="本月统计">
+          <div class="mini-stat"><strong id="statRecorded">0</strong><span>本月已记录</span></div>
+          <div class="mini-stat"><strong id="statYes">0</strong><span>已如厕</span></div>
+          <div class="mini-stat"><strong id="statNo">0</strong><span>未如厕</span></div>
+        </div>
+
+        <div class="attention" id="attention" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 9v4"></path><path d="M12 17h.01"></path>
+            <path d="M10.3 4.3 2.8 17.2A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.8L13.7 4.3a2 2 0 0 0-3.4 0Z"></path>
+          </svg>
+          <span id="attentionText"></span>
+        </div>
+
+        <div class="today-footer">
+          <button class="text-button danger" id="clearToday" type="button" hidden>清除今日记录</button>
+          <span class="today-footer-note">再次点击“已如厕”可更新为现在</span>
+        </div>
+      </section>
+
+      <section class="card calendar-card" aria-label="记录日历">
+        <div class="calendar-header">
+          <div>
+            <p class="eyebrow">记录日历</p>
+            <h2 id="calendarTitle">2026年10月</h2>
+          </div>
+          <div class="calendar-nav">
+            <button class="nav-button" id="prevMonth" type="button" aria-label="上个月">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6"></path>
+              </svg>
+            </button>
+            <button class="month-today" id="goToday" type="button">今天</button>
+            <button class="nav-button" id="nextMonth" type="button" aria-label="下个月">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="weekday-row" aria-hidden="true">
+          <div class="weekday">一</div><div class="weekday">二</div><div class="weekday">三</div>
+          <div class="weekday">四</div><div class="weekday">五</div><div class="weekday">六</div><div class="weekday">日</div>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid" aria-label="日期网格"></div>
+
+        <div class="calendar-legend">
+          <div class="legend-items">
+            <span class="legend-item"><span class="legend-swatch yes"></span>已如厕</span>
+            <span class="legend-item"><span class="legend-swatch no"></span>未如厕</span>
+          </div>
+          <span>点击日期可补记或修改</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="day-dialog" id="dayDialog" aria-labelledby="dayDialogTitle">
+    <form id="dayForm">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">补记 / 修改</p>
+          <h2 id="dayDialogTitle">2026年10月18日</h2>
+        </div>
+        <button class="icon-button" id="closeDayDialog" type="button" aria-label="关闭">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </div>
+
+      <p class="dialog-subtext">选择这一天是否如厕；再次点击已选状态可以取消选择。</p>
+
+      <div class="dialog-choice-grid" role="group" aria-label="选择当天如厕情况">
+        <button class="dialog-choice" type="button" data-day-status="yes" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.6 2.6L16.5 9"></path>
+          </svg>
+          已如厕
+        </button>
+        <button class="dialog-choice" type="button" data-day-status="no" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path>
+          </svg>
+          未如厕
+        </button>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="text-button danger" id="deleteDay" type="button" hidden>删除此日记录</button>
+        <div class="dialog-action-right">
+          <button class="button button-quiet" id="cancelDay" type="button">取消</button>
+          <button class="button button-primary" type="submit">保存</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    (() => {
+      "use strict";
+
+      const STORAGE_KEY = "nainai-toilet-records-v1";
+      const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+      const DAY_MS = 24 * 60 * 60 * 1000;
+
+      const els = {
+        storagePill: document.getElementById("storagePill"),
+        storageText: document.getElementById("storageText"),
+        telegramPill: document.getElementById("telegramPill"),
+        telegramText: document.getElementById("telegramText"),
+        dataMenu: document.getElementById("dataMenu"),
+        todayWeekday: document.getElementById("todayWeekday"),
+        todayDate: document.getElementById("todayDate"),
+        todayBadge: document.getElementById("todayBadge"),
+        timerBlock: document.getElementById("timerBlock"),
+        lastDuration: document.getElementById("lastDuration"),
+        lastDetail: document.getElementById("lastDetail"),
+        statRecorded: document.getElementById("statRecorded"),
+        statYes: document.getElementById("statYes"),
+        statNo: document.getElementById("statNo"),
+        attention: document.getElementById("attention"),
+        attentionText: document.getElementById("attentionText"),
+        clearToday: document.getElementById("clearToday"),
+        calendarTitle: document.getElementById("calendarTitle"),
+        calendarGrid: document.getElementById("calendarGrid"),
+        prevMonth: document.getElementById("prevMonth"),
+        nextMonth: document.getElementById("nextMonth"),
+        goToday: document.getElementById("goToday"),
+        exportCsv: document.getElementById("exportCsv"),
+        backupData: document.getElementById("backupData"),
+        restoreData: document.getElementById("restoreData"),
+        restoreInput: document.getElementById("restoreInput"),
+        clearAll: document.getElementById("clearAll"),
+        dayDialog: document.getElementById("dayDialog"),
+        dayDialogTitle: document.getElementById("dayDialogTitle"),
+        dayForm: document.getElementById("dayForm"),
+        deleteDay: document.getElementById("deleteDay"),
+        closeDayDialog: document.getElementById("closeDayDialog"),
+        cancelDay: document.getElementById("cancelDay"),
+        toast: document.getElementById("toast")
+      };
+
+      const todayStatusButtons = Array.from(document.querySelectorAll("[data-today-status]"));
+      const dialogStatusButtons = Array.from(document.querySelectorAll("[data-day-status]"));
+      const checkIcon = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 10 3 3 7-7"></path></svg>';
+      const dashIcon = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 10h10"></path></svg>';
+
+      let records = {};
+      let currentTodayKey = dateKey(new Date());
+      let viewMonth = startOfMonth(new Date());
+      let selectedDayKey = currentTodayKey;
+      let dialogDayKey = null;
+      let dialogStatus = null;
+      let toastTimer = null;
+      let storageOk = testStorage();
+
+      function pad2(value) {
+        return String(value).padStart(2, "0");
+      }
+
+      function dateKey(date) {
+        return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+      }
+
+      function parseDateKey(key) {
+        const parts = key.split("-").map(Number);
+        return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
+      }
+
+      function dateAtNoon(key) {
+        return parseDateKey(key).getTime();
+      }
+
+      function isValidDateKey(key) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return false;
+        const parts = key.split("-").map(Number);
+        const date = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
+        return date.getFullYear() === parts[0] && date.getMonth() === parts[1] - 1 && date.getDate() === parts[2];
+      }
+
+      function startOfMonth(date) {
+        return new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0, 0);
+      }
+
+      function addMonths(date, amount) {
+        return new Date(date.getFullYear(), date.getMonth() + amount, 1, 12, 0, 0, 0);
+      }
+
+      function monthKey(date) {
+        return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
+      }
+
+      function previousDateKey(key) {
+        const date = parseDateKey(key);
+        return dateKey(new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, 12, 0, 0, 0));
+      }
+
+      function formatMonthTitle(date) {
+        return `${date.getFullYear()}年${date.getMonth() + 1}月`;
+      }
+
+      function formatFullDate(key) {
+        const date = parseDateKey(key);
+        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 · ${WEEKDAYS[date.getDay()]}`;
+      }
+
+      function formatTime(timestamp) {
+        return new Date(timestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
+      }
+
+      function formatDateTime(timestamp) {
+        return new Date(timestamp).toLocaleString("zh-CN", {
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", hour12: false
+        });
+      }
+
+      function testStorage() {
+        try {
+          const key = "__nainai_toilet_storage_test__";
+          localStorage.setItem(key, "1");
+          localStorage.removeItem(key);
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function updateStoragePill() {
+        els.storagePill.classList.toggle("is-warning", !storageOk);
+        els.storageText.textContent = storageOk ? "本机保存" : "无法保存";
+      }
+
+      function showToast(message) {
+        window.clearTimeout(toastTimer);
+        els.toast.textContent = message;
+        els.toast.classList.add("is-visible");
+        toastTimer = window.setTimeout(() => els.toast.classList.remove("is-visible"), 2100);
+      }
+
+      function sanitizeRecord(value, key) {
+        if (!value || typeof value !== "object") return null;
+        const status = value.status === "yes" || value.status === "no" ? value.status : null;
+        if (!status) return null;
+
+        const numericUpdatedAt = Number(value.updatedAt);
+        const hasUpdatedAt = Number.isFinite(numericUpdatedAt) && numericUpdatedAt > 0;
+        const updatedAt = hasUpdatedAt ? numericUpdatedAt : dateAtNoon(key);
+        let toiletAt = null;
+        let timeKnown = false;
+
+        if (status === "yes") {
+          const numericToiletAt = Number(value.toiletAt);
+          if (Number.isFinite(numericToiletAt) && numericToiletAt > 0) {
+            toiletAt = numericToiletAt;
+            timeKnown = value.timeKnown !== false;
+          } else if (hasUpdatedAt && dateKey(new Date(updatedAt)) === key) {
+            toiletAt = updatedAt;
+            timeKnown = true;
+          } else {
+            toiletAt = dateAtNoon(key);
+            timeKnown = false;
+          }
+        }
+
+        return { status, updatedAt, toiletAt, timeKnown };
+      }
+
+      function loadRecords() {
+        if (!storageOk) return {};
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return {};
+          const parsed = JSON.parse(raw);
+          const source = parsed && typeof parsed === "object" && parsed.records && typeof parsed.records === "object"
+            ? parsed.records
+            : parsed;
+          if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+
+          const loaded = {};
+          Object.entries(source).forEach(([key, value]) => {
+            const clean = sanitizeRecord(value, key);
+            if (isValidDateKey(key) && clean) loaded[key] = clean;
+          });
+          return loaded;
+        } catch (error) {
+          console.warn("读取本地记录失败：", error);
+          showToast("读取记录失败，已从空白记录开始");
+          return {};
+        }
+      }
+
+      function saveRecords() {
+        if (!storageOk) return false;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, records }));
+          return true;
+        } catch (error) {
+          storageOk = false;
+          updateStoragePill();
+          showToast("无法自动保存，请先备份记录");
+          return false;
+        }
+      }
+
+      function getRecord(key) {
+        return records[key] || null;
+      }
+
+      function updateTelegramPill(state) {
+        if (!els.telegramPill || !els.telegramText) return;
+        els.telegramPill.classList.remove("is-sending", "is-error");
+        if (state === "sending") {
+          els.telegramPill.classList.add("is-sending");
+          els.telegramText.textContent = "TG 发送中";
+        } else if (state === "error") {
+          els.telegramPill.classList.add("is-error");
+          els.telegramText.textContent = "TG 发送失败";
+        } else {
+          els.telegramText.textContent = "TG 已发送";
+        }
+      }
+
+      function sendTelegramNotification(key, status) {
+        if (window.location.protocol === "file:") {
+          updateTelegramPill("error");
+          showToast("请通过 Docker 地址打开页面，Telegram 通知需要服务端");
+          return;
+        }
+        updateTelegramPill("sending");
+        const statusText = status === "yes" ? "已如厕" : "未如厕";
+        const message = key === currentTodayKey
+          ? `奶奶今天${statusText}（${formatTime(Date.now())}）`
+          : `奶奶 ${formatFullDate(key)} 记录：${statusText}`;
+
+        if (typeof fetch !== "function") {
+          updateTelegramPill("error");
+          showToast("当前浏览器不支持 Telegram 通知");
+          return;
+        }
+
+        fetch("/api/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        })
+          .then(async (response) => {
+            let data = {};
+            try { data = await response.json(); } catch (error) {}
+            if (!response.ok || !data.ok) throw new Error(data.error || "Telegram send failed");
+            updateTelegramPill("ok");
+          })
+          .catch((error) => {
+            console.warn("Telegram 通知发送失败：", error);
+            updateTelegramPill("error");
+            showToast("Telegram 通知发送失败，但记录已保存");
+          });
+      }
+      function setRecord(key, status) {
+        if (!isValidDateKey(key) || (status !== "yes" && status !== "no")) return;
+        const previous = getRecord(key) || {};
+        const now = Date.now();
+        let toiletAt = null;
+        let timeKnown = false;
+
+        if (status === "yes") {
+          if (key === currentTodayKey) {
+            toiletAt = now;
+            timeKnown = true;
+          } else if (previous.status === "yes" && previous.toiletAt) {
+            toiletAt = previous.toiletAt;
+            timeKnown = Boolean(previous.timeKnown);
+          } else {
+            toiletAt = dateAtNoon(key);
+            timeKnown = false;
+          }
+        }
+
+        records[key] = { status, updatedAt: now, toiletAt, timeKnown };
+        sendTelegramNotification(key, status);
+        saveRecords();
+      }
+
+      function deleteRecord(key) {
+        delete records[key];
+        saveRecords();
+      }
+
+      function getLastToiletRecord() {
+        let latest = null;
+        Object.entries(records).forEach(([key, record]) => {
+          if (record.status !== "yes" || !record.toiletAt) return;
+          if (!latest || record.toiletAt > latest.toiletAt || (record.toiletAt === latest.toiletAt && key > latest.key)) {
+            latest = { key, record };
+          }
+        });
+        return latest;
+      }
+
+      function formatDayDuration(milliseconds) {
+        const days = Math.floor(Math.max(0, milliseconds) / DAY_MS);
+        if (days < 1) return "不到 1 天";
+        return `${days} 天`;
+      }
+
+      function formatLastWhen(last) {
+        const date = new Date(last.record.toiletAt);
+        const key = dateKey(date);
+        const time = last.record.timeKnown ? formatTime(last.record.toiletAt) : "";
+        let dayText;
+        if (key === currentTodayKey) dayText = "今天";
+        else if (key === previousDateKey(currentTodayKey)) dayText = "昨天";
+        else dayText = `${date.getMonth() + 1}月${date.getDate()}日`;
+        return `上次：${dayText}${time ? ` ${time}` : ""}`;
+      }
+
+      function renderTimer() {
+        const last = getLastToiletRecord();
+        if (!last) {
+          els.timerBlock.classList.add("is-empty");
+          els.timerBlock.dataset.long = "false";
+          els.lastDuration.textContent = "暂无记录";
+          els.lastDetail.textContent = "点击“已如厕”开始计时";
+          return;
+        }
+
+        const elapsed = Math.max(0, Date.now() - last.record.toiletAt);
+        els.timerBlock.classList.remove("is-empty");
+        els.timerBlock.dataset.long = String(elapsed >= DAY_MS);
+        els.lastDuration.textContent = `${last.record.timeKnown ? "" : "约 "}${formatDayDuration(elapsed)}`;
+        els.lastDetail.textContent = formatLastWhen(last);
+      }
+
+      function renderToday() {
+        const date = parseDateKey(currentTodayKey);
+        const record = getRecord(currentTodayKey);
+        els.todayWeekday.textContent = WEEKDAYS[date.getDay()];
+        els.todayDate.textContent = `${date.getMonth() + 1}月${date.getDate()}日`;
+
+        const statusText = record && record.status === "yes" ? "今天已如厕" : record && record.status === "no" ? "今天未如厕" : "待记录";
+        els.todayBadge.textContent = statusText;
+        els.todayBadge.className = `badge ${record && record.status ? record.status : "neutral"}`;
+
+        todayStatusButtons.forEach((button) => {
+          const isActive = Boolean(record && record.status === button.dataset.todayStatus);
+          button.classList.toggle("is-active", isActive);
+          button.setAttribute("aria-pressed", String(isActive));
+        });
+
+        els.clearToday.hidden = !record;
+        renderTimer();
+      }
+
+      function renderCalendar() {
+        const year = viewMonth.getFullYear();
+        const month = viewMonth.getMonth();
+        const currentMonth = startOfMonth(new Date());
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1, 12, 0, 0, 0);
+        const leadingBlankCount = (firstDay.getDay() + 6) % 7;
+        const fragment = document.createDocumentFragment();
+
+        els.calendarTitle.textContent = formatMonthTitle(viewMonth);
+        els.nextMonth.disabled = monthKey(viewMonth) >= monthKey(currentMonth);
+
+        for (let index = 0; index < 42; index += 1) {
+          const day = index - leadingBlankCount + 1;
+          if (day < 1 || day > daysInMonth) {
+            const spacer = document.createElement("span");
+            spacer.className = "day-spacer";
+            spacer.setAttribute("aria-hidden", "true");
+            fragment.appendChild(spacer);
+            continue;
+          }
+
+          const key = dateKey(new Date(year, month, day, 12, 0, 0, 0));
+          const record = getRecord(key);
+          const isFuture = key > currentTodayKey;
+          const button = document.createElement("button");
+          const statusText = record && record.status === "yes" ? "已如厕" : record && record.status === "no" ? "未如厕" : "未记录";
+
+          button.type = "button";
+          button.className = "day-cell";
+          button.dataset.date = key;
+          button.disabled = isFuture;
+          button.setAttribute("aria-label", `${year}年${month + 1}月${day}日，${statusText}`);
+          if (record && record.status === "yes") button.classList.add("has-yes");
+          if (record && record.status === "no") button.classList.add("has-no");
+          if (key === currentTodayKey) button.classList.add("is-today");
+          if (key === selectedDayKey) button.classList.add("is-selected");
+
+          const number = document.createElement("span");
+          number.className = "day-number";
+          number.textContent = String(day);
+          button.appendChild(number);
+
+          if (record && record.status) {
+            const mark = document.createElement("span");
+            mark.className = "day-mark";
+            mark.setAttribute("aria-hidden", "true");
+            mark.innerHTML = record.status === "yes" ? checkIcon : dashIcon;
+            button.appendChild(mark);
+          }
+          fragment.appendChild(button);
+        }
+
+        els.calendarGrid.replaceChildren(fragment);
+      }
+
+      function getRecentNoStreak() {
+        let key = currentTodayKey;
+        const todayRecord = getRecord(key);
+        if (!todayRecord || !todayRecord.status) key = previousDateKey(key);
+        let count = 0;
+        while (count < 30) {
+          const record = getRecord(key);
+          if (!record || record.status !== "no") break;
+          count += 1;
+          key = previousDateKey(key);
+        }
+        return count;
+      }
+
+      function renderStats() {
+        const prefix = monthKey(viewMonth);
+        const monthRecords = Object.entries(records).filter(([key]) => key.startsWith(prefix));
+        const yesCount = monthRecords.filter(([, record]) => record.status === "yes").length;
+        const noCount = monthRecords.filter(([, record]) => record.status === "no").length;
+        els.statRecorded.textContent = String(yesCount + noCount);
+        els.statYes.textContent = String(yesCount);
+        els.statNo.textContent = String(noCount);
+
+        const noStreak = getRecentNoStreak();
+        if (noStreak >= 2) {
+          els.attention.hidden = false;
+          els.attentionText.textContent = `最近连续 ${noStreak} 天记录为未如厕，建议多留意。`;
+        } else {
+          els.attention.hidden = true;
+        }
+      }
+
+      function renderAll() {
+        renderToday();
+        renderCalendar();
+        renderStats();
+      }
+
+      function updateDialogChoices() {
+        dialogStatusButtons.forEach((button) => {
+          const isActive = dialogStatus === button.dataset.dayStatus;
+          button.classList.toggle("is-active", isActive);
+          button.setAttribute("aria-pressed", String(isActive));
+        });
+      }
+
+      function openDayDialog(key) {
+        if (key > currentTodayKey) return;
+        dialogDayKey = key;
+        selectedDayKey = key;
+        const record = getRecord(key);
+        dialogStatus = record && record.status ? record.status : null;
+        els.dayDialogTitle.textContent = formatFullDate(key);
+        els.deleteDay.hidden = !record;
+        updateDialogChoices();
+        renderCalendar();
+
+        if (!els.dayDialog.open) {
+          els.dayDialog.showModal();
+          window.setTimeout(() => {
+            const preferredButton = dialogStatus
+              ? document.querySelector(`[data-day-status="${dialogStatus}"]`)
+              : dialogStatusButtons[0];
+            if (preferredButton) preferredButton.focus();
+          }, 20);
+        }
+      }
+
+      function closeDayDialog() {
+        if (els.dayDialog.open) els.dayDialog.close();
+      }
+
+      function saveDayDialog() {
+        if (!dialogDayKey) return;
+        if (!dialogStatus) deleteRecord(dialogDayKey);
+        else setRecord(dialogDayKey, dialogStatus);
+        const savedKey = dialogDayKey;
+        closeDayDialog();
+        renderAll();
+        showToast(dialogStatus ? "记录已保存" : "记录已清除");
+      }
+
+      function downloadFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+      }
+
+      function exportCsvFile() {
+        const keys = Object.keys(records).sort();
+        if (!keys.length) {
+          showToast("还没有记录可导出");
+          return;
+        }
+        const escapeCell = (value) => {
+          let text = value == null ? "" : String(value);
+          if (/^[=+\-@]/.test(text)) text = `'${text}`;
+          return `"${text.replace(/"/g, '""')}"`;
+        };
+        const rows = [["日期", "星期", "是否如厕", "如厕时间", "最后更新"]];
+        keys.forEach((key) => {
+          const record = records[key];
+          const date = parseDateKey(key);
+          const toiletTime = record.status === "yes"
+            ? record.timeKnown ? formatDateTime(record.toiletAt) : `${key}（仅日期）`
+            : "";
+          rows.push([
+            key,
+            WEEKDAYS[date.getDay()],
+            record.status === "yes" ? "已如厕" : "未如厕",
+            toiletTime,
+            record.updatedAt ? formatDateTime(record.updatedAt) : ""
+          ]);
+        });
+        const csv = "\uFEFF" + rows.map((row) => row.map(escapeCell).join(",")).join("\r\n");
+        downloadFile(`奶奶如厕记录_${currentTodayKey}.csv`, csv, "text/csv;charset=utf-8");
+        showToast("CSV 已导出");
+      }
+
+      function backupJsonFile() {
+        if (!Object.keys(records).length) {
+          showToast("还没有记录可备份");
+          return;
+        }
+        const payload = {
+          app: "nainai-toilet-records",
+          version: 2,
+          exportedAt: new Date().toISOString(),
+          records
+        };
+        downloadFile(`奶奶如厕记录备份_${currentTodayKey}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+        showToast("备份文件已生成");
+      }
+
+      async function restoreBackupFile(file) {
+        if (!file) return;
+        try {
+          const parsed = JSON.parse(await file.text());
+          const source = parsed && typeof parsed === "object" && parsed.records && typeof parsed.records === "object"
+            ? parsed.records
+            : parsed;
+          if (!source || typeof source !== "object" || Array.isArray(source)) throw new Error("invalid backup");
+
+          const incoming = {};
+          Object.entries(source).forEach(([key, value]) => {
+            const clean = sanitizeRecord(value, key);
+            if (isValidDateKey(key) && clean) incoming[key] = clean;
+          });
+          const count = Object.keys(incoming).length;
+          if (!count) {
+            showToast("备份中没有可恢复的记录");
+            return;
+          }
+
+          const confirmed = window.confirm(`备份中有 ${count} 条记录。\n恢复后会与当前记录合并，同一天以备份内容为准。是否继续？`);
+          if (!confirmed) return;
+          Object.assign(records, incoming);
+          saveRecords();
+          renderAll();
+          showToast(`已恢复 ${count} 条记录`);
+        } catch (error) {
+          console.warn("恢复备份失败：", error);
+          showToast("无法读取这个备份文件");
+        } finally {
+          els.restoreInput.value = "";
+        }
+      }
+
+      function checkDayRollover() {
+        const nextKey = dateKey(new Date());
+        if (nextKey !== currentTodayKey) {
+          currentTodayKey = nextKey;
+          viewMonth = startOfMonth(new Date());
+          selectedDayKey = currentTodayKey;
+          renderAll();
+          showToast("新的一天，已切换到今天的记录");
+          return;
+        }
+        renderTimer();
+      }
+
+      todayStatusButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const status = button.dataset.todayStatus;
+          setRecord(currentTodayKey, status);
+          renderAll();
+          showToast(status === "yes" ? "已记录：现在已如厕" : "已记录：今天未如厕");
+        });
+      });
+
+      els.clearToday.addEventListener("click", () => {
+        if (!getRecord(currentTodayKey)) return;
+        if (!window.confirm("要清除今天的如厕记录吗？")) return;
+        deleteRecord(currentTodayKey);
+        renderAll();
+        showToast("今日记录已清除");
+      });
+
+      els.prevMonth.addEventListener("click", () => {
+        viewMonth = addMonths(viewMonth, -1);
+        renderCalendar();
+        renderStats();
+      });
+
+      els.nextMonth.addEventListener("click", () => {
+        const currentMonth = startOfMonth(new Date());
+        if (monthKey(viewMonth) >= monthKey(currentMonth)) return;
+        viewMonth = addMonths(viewMonth, 1);
+        renderCalendar();
+        renderStats();
+      });
+
+      els.goToday.addEventListener("click", () => {
+        currentTodayKey = dateKey(new Date());
+        viewMonth = startOfMonth(new Date());
+        selectedDayKey = currentTodayKey;
+        renderAll();
+      });
+
+      els.calendarGrid.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-date]");
+        if (!button || button.disabled) return;
+        openDayDialog(button.dataset.date);
+      });
+
+      dialogStatusButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const nextStatus = button.dataset.dayStatus;
+          dialogStatus = dialogStatus === nextStatus ? null : nextStatus;
+          updateDialogChoices();
+        });
+      });
+
+      els.dayForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveDayDialog();
+      });
+
+      els.closeDayDialog.addEventListener("click", closeDayDialog);
+      els.cancelDay.addEventListener("click", closeDayDialog);
+
+      els.deleteDay.addEventListener("click", () => {
+        if (!dialogDayKey || !getRecord(dialogDayKey)) {
+          closeDayDialog();
+          return;
+        }
+        if (!window.confirm("要删除这一天的记录吗？")) return;
+        deleteRecord(dialogDayKey);
+        closeDayDialog();
+        renderAll();
+        showToast("这一天的记录已删除");
+      });
+
+      els.dayDialog.addEventListener("click", (event) => {
+        if (event.target !== els.dayDialog) return;
+        const rect = els.dayDialog.getBoundingClientRect();
+        const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+        if (!inside) closeDayDialog();
+      });
+
+      els.exportCsv.addEventListener("click", () => {
+        exportCsvFile();
+        els.dataMenu.open = false;
+      });
+      els.backupData.addEventListener("click", () => {
+        backupJsonFile();
+        els.dataMenu.open = false;
+      });
+      els.restoreData.addEventListener("click", () => {
+        els.restoreInput.click();
+        els.dataMenu.open = false;
+      });
+      els.restoreInput.addEventListener("change", () => restoreBackupFile(els.restoreInput.files[0]));
+
+      els.clearAll.addEventListener("click", () => {
+        if (!Object.keys(records).length) {
+          showToast("当前没有记录");
+          return;
+        }
+        const confirmed = window.confirm("确定清空全部记录吗？\n此操作无法撤销，建议先备份数据。");
+        if (!confirmed) return;
+        records = {};
+        saveRecords();
+        renderAll();
+        els.dataMenu.open = false;
+        showToast("全部记录已清空");
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) checkDayRollover();
+      });
+
+      window.setInterval(checkDayRollover, 30000);
+
+      if (!storageOk) updateStoragePill();
+      records = loadRecords();
+      if (storageOk && Object.keys(records).length) saveRecords();
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
