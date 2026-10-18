@@ -636,6 +636,7 @@
 
       const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
       const DAY_MS = 24 * 60 * 60 * 1000;
+      const CACHE_KEY = "nainai-toilet-records-cache-v3";
 
       const els = {
         storagePill: document.getElementById("storagePill"),
@@ -751,9 +752,15 @@
 
 
       function setSyncState(state) {
-        const isError = state === "error";
-        els.storagePill.classList.toggle("is-warning", isError);
-        els.storageText.textContent = state === "saving" ? "同步中…" : isError ? "同步失败" : "服务器同步";
+        const isWarning = state === "error" || state === "cached";
+        els.storagePill.classList.toggle("is-warning", isWarning);
+        els.storageText.textContent = state === "saving"
+          ? "同步中…"
+          : state === "cached"
+            ? "使用缓存"
+            : state === "error"
+              ? "同步失败"
+              : "服务器同步";
       }
 
       function showToast(message) {
@@ -791,6 +798,35 @@
         return { status, updatedAt, toiletAt, timeKnown };
       }
 
+      function loadCachedRecords() {
+        try {
+          const raw = localStorage.getItem(CACHE_KEY);
+          if (!raw) return {};
+          const parsed = JSON.parse(raw);
+          const source = parsed && typeof parsed === "object" && parsed.records && typeof parsed.records === "object"
+            ? parsed.records
+            : parsed;
+          if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+
+          const loaded = {};
+          Object.entries(source).forEach(([key, value]) => {
+            const clean = sanitizeRecord(value, key);
+            if (isValidDateKey(key) && clean) loaded[key] = clean;
+          });
+          return loaded;
+        } catch (error) {
+          return {};
+        }
+      }
+
+      function cacheRecords() {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ version: 3, savedAt: Date.now(), records }));
+        } catch (error) {
+          // Cache is only for fast first paint; server data remains authoritative.
+        }
+      }
+
       async function fetchRecordsFromServer({ silent = false, force = false } = {}) {
         if (isSaving && !force) return false;
         try {
@@ -806,13 +842,15 @@
             if (isValidDateKey(key) && clean) loaded[key] = clean;
           });
           records = loaded;
+          cacheRecords();
           setSyncState("ok");
           renderAll();
           return true;
         } catch (error) {
           console.warn("读取服务器记录失败：", error);
-          setSyncState("error");
-          if (!silent) showToast("无法连接服务器，记录未同步");
+          const hasCache = Object.keys(records).length > 0;
+          setSyncState(hasCache ? "cached" : "error");
+          if (!silent) showToast(hasCache ? "服务器暂时不可用，正在显示缓存" : "无法连接服务器，记录未同步");
           return false;
         }
       }
@@ -837,15 +875,17 @@
             if (isValidDateKey(key) && clean) loaded[key] = clean;
           });
           records = loaded;
+          cacheRecords();
           setSyncState("ok");
           renderAll();
           return true;
         } catch (error) {
           console.warn("保存服务器记录失败：", error);
-          setSyncState("error");
-          showToast("服务器保存失败，已重新读取记录");
-          isSaving = false;
-          await fetchRecordsFromServer({ silent: true, force: true });
+          records = loadCachedRecords();
+          renderAll();
+          const hasCache = Object.keys(records).length > 0;
+          setSyncState(hasCache ? "cached" : "error");
+          showToast(hasCache ? "服务器保存失败，已恢复缓存记录" : "服务器保存失败");
           return false;
         } finally {
           isSaving = false;
@@ -1368,9 +1408,9 @@
         if (!document.hidden && !isSaving) fetchRecordsFromServer({ silent: true });
       }, 15000);
 
-      setSyncState("saving");
-      records = {};
+      records = loadCachedRecords();
       renderAll();
+      setSyncState(Object.keys(records).length ? "cached" : "saving");
       fetchRecordsFromServer();
     })();
   </script>
