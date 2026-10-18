@@ -477,7 +477,7 @@
       </div>
       <div class="top-actions">
         <span class="telegram-pill" id="telegramPill" title="每次记录会自动发送到 Telegram"><span class="dot" aria-hidden="true"></span><span id="telegramText">TG 通知</span></span>
-        <span class="local-pill" id="storagePill"><span class="dot" aria-hidden="true"></span><span id="storageText">本机保存</span></span>
+        <span class="local-pill" id="storagePill"><span class="dot" aria-hidden="true"></span><span id="storageText">服务器同步</span></span>
         <details class="data-menu" id="dataMenu">
           <summary>数据</summary>
           <div class="data-popover">
@@ -634,7 +634,6 @@
     (() => {
       "use strict";
 
-      const STORAGE_KEY = "nainai-toilet-records-v1";
       const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
       const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -687,7 +686,7 @@
       let dialogDayKey = null;
       let dialogStatus = null;
       let toastTimer = null;
-      let storageOk = testStorage();
+      let isSaving = false;
 
       function pad2(value) {
         return String(value).padStart(2, "0");
@@ -750,20 +749,11 @@
         });
       }
 
-      function testStorage() {
-        try {
-          const key = "__nainai_toilet_storage_test__";
-          localStorage.setItem(key, "1");
-          localStorage.removeItem(key);
-          return true;
-        } catch (error) {
-          return false;
-        }
-      }
 
-      function updateStoragePill() {
-        els.storagePill.classList.toggle("is-warning", !storageOk);
-        els.storageText.textContent = storageOk ? "本机保存" : "无法保存";
+      function setSyncState(state) {
+        const isError = state === "error";
+        els.storagePill.classList.toggle("is-warning", isError);
+        els.storageText.textContent = state === "saving" ? "同步中…" : isError ? "同步失败" : "服务器同步";
       }
 
       function showToast(message) {
@@ -801,40 +791,64 @@
         return { status, updatedAt, toiletAt, timeKnown };
       }
 
-      function loadRecords() {
-        if (!storageOk) return {};
+      async function fetchRecordsFromServer({ silent = false, force = false } = {}) {
+        if (isSaving && !force) return false;
         try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) return {};
-          const parsed = JSON.parse(raw);
-          const source = parsed && typeof parsed === "object" && parsed.records && typeof parsed.records === "object"
-            ? parsed.records
-            : parsed;
-          if (!source || typeof source !== "object" || Array.isArray(source)) return {};
-
+          const response = await fetch("/api/records", { cache: "no-store" });
+          let data = {};
+          try { data = await response.json(); } catch (error) {}
+          if (!response.ok || !data.ok || !data.records || typeof data.records !== "object") {
+            throw new Error(data.error || "Unable to load records");
+          }
           const loaded = {};
-          Object.entries(source).forEach(([key, value]) => {
+          Object.entries(data.records).forEach(([key, value]) => {
             const clean = sanitizeRecord(value, key);
             if (isValidDateKey(key) && clean) loaded[key] = clean;
           });
-          return loaded;
+          records = loaded;
+          setSyncState("ok");
+          renderAll();
+          return true;
         } catch (error) {
-          console.warn("读取本地记录失败：", error);
-          showToast("读取记录失败，已从空白记录开始");
-          return {};
+          console.warn("读取服务器记录失败：", error);
+          setSyncState("error");
+          if (!silent) showToast("无法连接服务器，记录未同步");
+          return false;
         }
       }
 
-      function saveRecords() {
-        if (!storageOk) return false;
+      async function postRecordsAction(payload) {
+        isSaving = true;
+        setSyncState("saving");
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, records }));
+          const response = await fetch("/api/records", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          let data = {};
+          try { data = await response.json(); } catch (error) {}
+          if (!response.ok || !data.ok || !data.records || typeof data.records !== "object") {
+            throw new Error(data.error || "Unable to save records");
+          }
+          const loaded = {};
+          Object.entries(data.records).forEach(([key, value]) => {
+            const clean = sanitizeRecord(value, key);
+            if (isValidDateKey(key) && clean) loaded[key] = clean;
+          });
+          records = loaded;
+          setSyncState("ok");
+          renderAll();
           return true;
         } catch (error) {
-          storageOk = false;
-          updateStoragePill();
-          showToast("无法自动保存，请先备份记录");
+          console.warn("保存服务器记录失败：", error);
+          setSyncState("error");
+          showToast("服务器保存失败，已重新读取记录");
+          isSaving = false;
+          await fetchRecordsFromServer({ silent: true, force: true });
           return false;
+        } finally {
+          isSaving = false;
         }
       }
 
@@ -891,8 +905,8 @@
             showToast("Telegram 通知发送失败，但记录已保存");
           });
       }
-      function setRecord(key, status) {
-        if (!isValidDateKey(key) || (status !== "yes" && status !== "no")) return;
+      async function setRecord(key, status) {
+        if (!isValidDateKey(key) || (status !== "yes" && status !== "no")) return false;
         const previous = getRecord(key) || {};
         const now = Date.now();
         let toiletAt = null;
@@ -911,14 +925,24 @@
           }
         }
 
-        records[key] = { status, updatedAt: now, toiletAt, timeKnown };
-        sendTelegramNotification(key, status);
-        saveRecords();
+        const record = { status, updatedAt: now, toiletAt, timeKnown };
+        records[key] = record;
+        renderAll();
+        const saved = await postRecordsAction({ action: "set", date: key, record });
+        if (saved) sendTelegramNotification(key, status);
+        return saved;
       }
 
-      function deleteRecord(key) {
+      async function deleteRecord(key) {
         delete records[key];
-        saveRecords();
+        renderAll();
+        return postRecordsAction({ action: "delete", date: key });
+      }
+
+      async function clearAllRecords() {
+        records = {};
+        renderAll();
+        return postRecordsAction({ action: "clear" });
       }
 
       function getLastToiletRecord() {
@@ -1114,14 +1138,14 @@
         if (els.dayDialog.open) els.dayDialog.close();
       }
 
-      function saveDayDialog() {
+      async function saveDayDialog() {
         if (!dialogDayKey) return;
-        if (!dialogStatus) deleteRecord(dialogDayKey);
-        else setRecord(dialogDayKey, dialogStatus);
-        const savedKey = dialogDayKey;
+        const key = dialogDayKey;
+        const status = dialogStatus;
+        const saved = status ? await setRecord(key, status) : await deleteRecord(key);
+        if (!saved) return;
         closeDayDialog();
-        renderAll();
-        showToast(dialogStatus ? "记录已保存" : "记录已清除");
+        showToast(status ? "记录已保存" : "记录已清除");
       }
 
       function downloadFile(filename, content, mimeType) {
@@ -1202,12 +1226,11 @@
             return;
           }
 
-          const confirmed = window.confirm(`备份中有 ${count} 条记录。\n恢复后会与当前记录合并，同一天以备份内容为准。是否继续？`);
+          const confirmed = window.confirm(`备份中有 ${count} 条记录。
+恢复后会与服务器记录合并，同一天以备份内容为准。是否继续？`);
           if (!confirmed) return;
-          Object.assign(records, incoming);
-          saveRecords();
-          renderAll();
-          showToast(`已恢复 ${count} 条记录`);
+          const saved = await postRecordsAction({ action: "import", records: incoming });
+          if (saved) showToast(`已恢复 ${count} 条记录`);
         } catch (error) {
           console.warn("恢复备份失败：", error);
           showToast("无法读取这个备份文件");
@@ -1230,20 +1253,18 @@
       }
 
       todayStatusButtons.forEach((button) => {
-        button.addEventListener("click", () => {
+        button.addEventListener("click", async () => {
           const status = button.dataset.todayStatus;
-          setRecord(currentTodayKey, status);
-          renderAll();
-          showToast(status === "yes" ? "已记录：现在已如厕" : "已记录：今天未如厕");
+          const saved = await setRecord(currentTodayKey, status);
+          if (saved) showToast(status === "yes" ? "已保存：现在已如厕" : "已保存：今天未如厕");
         });
       });
 
-      els.clearToday.addEventListener("click", () => {
+      els.clearToday.addEventListener("click", async () => {
         if (!getRecord(currentTodayKey)) return;
         if (!window.confirm("要清除今天的如厕记录吗？")) return;
-        deleteRecord(currentTodayKey);
-        renderAll();
-        showToast("今日记录已清除");
+        const saved = await deleteRecord(currentTodayKey);
+        if (saved) showToast("今日记录已清除");
       });
 
       els.prevMonth.addEventListener("click", () => {
@@ -1281,23 +1302,23 @@
         });
       });
 
-      els.dayForm.addEventListener("submit", (event) => {
+      els.dayForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        saveDayDialog();
+        await saveDayDialog();
       });
 
       els.closeDayDialog.addEventListener("click", closeDayDialog);
       els.cancelDay.addEventListener("click", closeDayDialog);
 
-      els.deleteDay.addEventListener("click", () => {
+      els.deleteDay.addEventListener("click", async () => {
         if (!dialogDayKey || !getRecord(dialogDayKey)) {
           closeDayDialog();
           return;
         }
         if (!window.confirm("要删除这一天的记录吗？")) return;
-        deleteRecord(dialogDayKey);
+        const saved = await deleteRecord(dialogDayKey);
+        if (!saved) return;
         closeDayDialog();
-        renderAll();
         showToast("这一天的记录已删除");
       });
 
@@ -1322,30 +1343,35 @@
       });
       els.restoreInput.addEventListener("change", () => restoreBackupFile(els.restoreInput.files[0]));
 
-      els.clearAll.addEventListener("click", () => {
+      els.clearAll.addEventListener("click", async () => {
         if (!Object.keys(records).length) {
           showToast("当前没有记录");
           return;
         }
         const confirmed = window.confirm("确定清空全部记录吗？\n此操作无法撤销，建议先备份数据。");
         if (!confirmed) return;
-        records = {};
-        saveRecords();
-        renderAll();
+        const saved = await clearAllRecords();
+        if (!saved) return;
         els.dataMenu.open = false;
         showToast("全部记录已清空");
       });
 
       document.addEventListener("visibilitychange", () => {
-        if (!document.hidden) checkDayRollover();
+        if (!document.hidden) {
+          checkDayRollover();
+          fetchRecordsFromServer({ silent: true });
+        }
       });
 
       window.setInterval(checkDayRollover, 30000);
+      window.setInterval(() => {
+        if (!document.hidden && !isSaving) fetchRecordsFromServer({ silent: true });
+      }, 15000);
 
-      if (!storageOk) updateStoragePill();
-      records = loadRecords();
-      if (storageOk && Object.keys(records).length) saveRecords();
+      setSyncState("saving");
+      records = {};
       renderAll();
+      fetchRecordsFromServer();
     })();
   </script>
 </body>
