@@ -12,7 +12,7 @@
 - 页面打开后每 15 秒自动同步，切回页面时立即刷新
 - 每次记录通过服务端接口发送 Telegram 消息
 - 支持 CSV 导出、JSON 备份与恢复
-- Docker Compose 部署，数据通过命名卷持久化
+- Docker Compose 部署，数据通过项目目录下的 `./data` 持久化
 
 ## 快速开始
 
@@ -33,7 +33,6 @@
    ```dotenv
    TELEGRAM_BOT_TOKEN=your_bot_token
    TELEGRAM_CHAT_ID=your_chat_id
-   APP_PORT=8080
    ```
 
 3. 启动：
@@ -42,7 +41,7 @@
    docker compose up -d --build
    ```
 
-4. 打开 `http://localhost:8080`。
+4. 打开 `http://localhost:8380`。
 
 停止服务：
 
@@ -50,11 +49,13 @@
 docker compose down
 ```
 
-服务端数据保存在 Docker 命名卷 `nainaidance-data` 中，普通停止或重建容器不会丢失。删除该卷会删除全部记录：
+服务端数据保存在项目目录下的 `./data` 文件夹中，容器内路径为 `/data`。普通停止、重启或重建容器都不会丢失：
 
-```bash
-docker compose down -v
+```text
+/opt/nainaidance/data/records.json
 ```
+
+注意：`docker compose down -v` 不会删除 `./data` 绑定目录，但手动删除 `data/` 会删除全部记录。`data/` 已加入 `.gitignore`，不会提交到 Git。
 
 ## 安全说明
 
@@ -73,6 +74,7 @@ Telegram Bot Token 只放在服务端环境变量中，不会进入 `public/inde
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .env.example
+├── data/              # 运行数据，已被 Git 忽略
 └── README.md
 ```
 
@@ -97,3 +99,5 @@ Telegram Bot Token 只放在服务端环境变量中，不会进入 `public/inde
   }
 }
 ```
+
+
