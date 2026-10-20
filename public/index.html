@@ -688,6 +688,7 @@
       let dialogStatus = null;
       let toastTimer = null;
       let isSaving = false;
+      let syncVersion = 0;
 
       function pad2(value) {
         return String(value).padStart(2, "0");
@@ -829,6 +830,7 @@
 
       async function fetchRecordsFromServer({ silent = false, force = false } = {}) {
         if (isSaving && !force) return false;
+        const requestVersion = syncVersion;
         try {
           const response = await fetch("/api/records", { cache: "no-store" });
           let data = {};
@@ -841,12 +843,14 @@
             const clean = sanitizeRecord(value, key);
             if (isValidDateKey(key) && clean) loaded[key] = clean;
           });
+          if (requestVersion !== syncVersion) return false;
           records = loaded;
           cacheRecords();
           setSyncState("ok");
           renderAll();
           return true;
         } catch (error) {
+          if (requestVersion !== syncVersion) return false;
           console.warn("读取服务器记录失败：", error);
           const hasCache = Object.keys(records).length > 0;
           setSyncState(hasCache ? "cached" : "error");
@@ -856,6 +860,7 @@
       }
 
       async function postRecordsAction(payload) {
+        const requestVersion = ++syncVersion;
         isSaving = true;
         setSyncState("saving");
         try {
@@ -874,12 +879,14 @@
             const clean = sanitizeRecord(value, key);
             if (isValidDateKey(key) && clean) loaded[key] = clean;
           });
+          if (requestVersion !== syncVersion) return false;
           records = loaded;
           cacheRecords();
           setSyncState("ok");
           renderAll();
           return true;
         } catch (error) {
+          if (requestVersion !== syncVersion) return false;
           console.warn("保存服务器记录失败：", error);
           records = loadCachedRecords();
           renderAll();
