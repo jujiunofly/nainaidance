@@ -996,7 +996,8 @@
         let latest = null;
         Object.entries(records).forEach(([key, record]) => {
           if (record.status !== "yes" || !record.toiletAt) return;
-          if (!latest || record.toiletAt > latest.toiletAt || (record.toiletAt === latest.toiletAt && key > latest.key)) {
+          // The record date is authoritative. Time is only a tie-breaker for the same day.
+          if (!latest || key > latest.key || (key === latest.key && record.toiletAt > latest.toiletAt)) {
             latest = { key, record };
           }
         });
@@ -1012,12 +1013,12 @@
       function formatLastWhen(last) {
         const date = new Date(last.record.toiletAt);
         const key = dateKey(date);
-        const time = last.record.timeKnown ? formatTime(last.record.toiletAt) : "";
+        const timeText = last.record.timeKnown ? ` ${formatTime(last.record.toiletAt)}` : "（仅日期）";
         let dayText;
         if (key === currentTodayKey) dayText = "今天";
         else if (key === previousDateKey(currentTodayKey)) dayText = "昨天";
         else dayText = `${date.getMonth() + 1}月${date.getDate()}日`;
-        return `上次：${dayText}${time ? ` ${time}` : ""}`;
+        return `上次：${dayText}${timeText}`;
       }
 
       function renderTimer() {
