@@ -44,7 +44,7 @@
         linear-gradient(180deg, #f8f4ed 0%, var(--bg) 58%, #f2ece2 100%);
       background-attachment: fixed;
     }
-    button, summary { font: inherit; }
+    button, input, summary { font: inherit; }
     button { color: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     button:focus-visible, summary:focus-visible { outline: 3px solid rgba(47, 107, 81, .28); outline-offset: 3px; }
     [hidden] { display: none !important; }
@@ -290,7 +290,6 @@
     .day-cell.has-yes { background: var(--green-soft); }
     .day-cell.has-no { background: var(--clay-soft); }
     .day-cell.is-today { box-shadow: inset 0 0 0 2px rgba(32, 54, 45, .58); }
-    .day-cell.is-selected { outline: 2px solid var(--green); outline-offset: 1px; }
     .day-number {
       position: relative; z-index: 1;
       font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
@@ -357,6 +356,42 @@
     .button-primary:hover { background: var(--green-deep); }
     .button-quiet { border-color: var(--line); color: #5f6d65; background: #fbf8f2; }
     .button-quiet:hover { border-color: #d0c4b3; background: #fffefb; }
+
+
+    .time-edit-block { margin-top: 14px; }
+    .time-input {
+      width: 100%; min-height: 40px; padding: 0 12px;
+      border: 1px solid var(--line); border-radius: 11px;
+      color: var(--ink); background: #fbf8f2;
+    }
+    .time-input:focus {
+      outline: none; border-color: rgba(47, 107, 81, .5);
+      box-shadow: 0 0 0 4px rgba(47, 107, 81, .08); background: #fffefb;
+    }
+    .time-help { margin: 6px 0 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+
+    .edit-data-dialog { width: min(560px, calc(100vw - 28px)); }
+    .edit-data-content { padding: 22px; }
+    .edit-record-list {
+      display: grid; gap: 7px; max-height: 58svh; overflow: auto;
+      margin-top: 5px; padding-right: 2px;
+    }
+    .edit-record-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; padding: 10px 11px; border: 1px solid var(--line);
+      border-radius: 12px; text-align: left; background: #fbf8f2; cursor: pointer;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+    .edit-record-row:hover { border-color: #d0c4b3; background: #fffefb; transform: translateY(-1px); }
+    .edit-record-main { display: grid; gap: 3px; min-width: 0; }
+    .edit-record-date { font-size: 12px; font-weight: 700; }
+    .edit-record-meta { color: var(--muted); font-size: 10px; }
+    .edit-record-side { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .edit-status { padding: 4px 7px; border-radius: 999px; font-size: 9px; font-weight: 700; }
+    .edit-status.yes { color: var(--green-deep); background: var(--green-soft); }
+    .edit-status.no { color: #8b4d39; background: var(--clay-soft); }
+    .edit-row-arrow { color: #a5aaa4; font-size: 16px; line-height: 1; }
+    .edit-empty { padding: 24px 12px; text-align: center; color: var(--muted); font-size: 12px; }
 
     .toast {
       position: fixed; z-index: 50; left: 50%; bottom: 20px;
@@ -481,7 +516,8 @@
         <details class="data-menu" id="dataMenu">
           <summary>数据</summary>
           <div class="data-popover">
-            <button id="exportCsv" type="button">导出 CSV</button>
+            <button id="editData" type="button">编辑数据</button>
+            <button id="exportExcel" type="button">导出 Excel</button>
             <button id="backupData" type="button">备份数据</button>
             <button id="restoreData" type="button">恢复备份</button>
             <button class="danger" id="clearAll" type="button">清空全部</button>
@@ -545,7 +581,7 @@
 
         <div class="today-footer">
           <button class="text-button danger" id="clearToday" type="button" hidden>清除今日记录</button>
-          <span class="today-footer-note">再次点击“已如厕”可更新为现在</span>
+          <span class="today-footer-note">祝奶奶身体好起来，平平安安。</span>
         </div>
       </section>
 
@@ -619,6 +655,14 @@
         </button>
       </div>
 
+      <div class="time-edit-block" id="dayTimeBlock" hidden>
+        <label class="field-label" for="dayTime">
+          <span>如厕时间</span><span class="optional">可选</span>
+        </label>
+        <input class="time-input" id="dayTime" type="time">
+        <p class="time-help">补记历史日期时可填写具体时间；不填则只记录日期。</p>
+      </div>
+
       <div class="dialog-actions">
         <button class="text-button danger" id="deleteDay" type="button" hidden>删除此日记录</button>
         <div class="dialog-action-right">
@@ -627,6 +671,24 @@
         </div>
       </div>
     </form>
+  </dialog>
+
+  <dialog class="day-dialog edit-data-dialog" id="editDataDialog" aria-labelledby="editDataTitle">
+    <div class="edit-data-content">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">数据管理</p>
+          <h2 id="editDataTitle">编辑数据</h2>
+        </div>
+        <button class="icon-button" id="closeEditDataDialog" type="button" aria-label="关闭">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18"></path>
+          </svg>
+        </button>
+      </div>
+      <p class="dialog-subtext">选择一条记录进行修改；也可以直接点击日历中的日期。</p>
+      <div class="edit-record-list" id="editRecordList"></div>
+    </div>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -644,6 +706,10 @@
         telegramPill: document.getElementById("telegramPill"),
         telegramText: document.getElementById("telegramText"),
         dataMenu: document.getElementById("dataMenu"),
+        editData: document.getElementById("editData"),
+        editDataDialog: document.getElementById("editDataDialog"),
+        closeEditDataDialog: document.getElementById("closeEditDataDialog"),
+        editRecordList: document.getElementById("editRecordList"),
         todayWeekday: document.getElementById("todayWeekday"),
         todayDate: document.getElementById("todayDate"),
         todayBadge: document.getElementById("todayBadge"),
@@ -661,7 +727,7 @@
         prevMonth: document.getElementById("prevMonth"),
         nextMonth: document.getElementById("nextMonth"),
         goToday: document.getElementById("goToday"),
-        exportCsv: document.getElementById("exportCsv"),
+        exportExcel: document.getElementById("exportExcel"),
         backupData: document.getElementById("backupData"),
         restoreData: document.getElementById("restoreData"),
         restoreInput: document.getElementById("restoreInput"),
@@ -669,6 +735,8 @@
         dayDialog: document.getElementById("dayDialog"),
         dayDialogTitle: document.getElementById("dayDialogTitle"),
         dayForm: document.getElementById("dayForm"),
+        dayTimeBlock: document.getElementById("dayTimeBlock"),
+        dayTime: document.getElementById("dayTime"),
         deleteDay: document.getElementById("deleteDay"),
         closeDayDialog: document.getElementById("closeDayDialog"),
         cancelDay: document.getElementById("cancelDay"),
@@ -683,7 +751,6 @@
       let records = {};
       let currentTodayKey = dateKey(new Date());
       let viewMonth = startOfMonth(new Date());
-      let selectedDayKey = currentTodayKey;
       let dialogDayKey = null;
       let dialogStatus = null;
       let toastTimer = null;
@@ -952,7 +1019,7 @@
             showToast("Telegram 通知发送失败，但记录已保存");
           });
       }
-      async function setRecord(key, status) {
+      async function setRecord(key, status, timeOverride = null) {
         if (!isValidDateKey(key) || (status !== "yes" && status !== "no")) return false;
         const previous = getRecord(key) || {};
         const now = Date.now();
@@ -960,7 +1027,10 @@
         let timeKnown = false;
 
         if (status === "yes") {
-          if (key === currentTodayKey) {
+          if (timeOverride && Number.isFinite(timeOverride.toiletAt)) {
+            toiletAt = timeOverride.toiletAt;
+            timeKnown = timeOverride.timeKnown !== false;
+          } else if (key === currentTodayKey) {
             toiletAt = now;
             timeKnown = true;
           } else if (previous.status === "yes" && previous.toiletAt) {
@@ -1094,7 +1164,6 @@
           if (record && record.status === "yes") button.classList.add("has-yes");
           if (record && record.status === "no") button.classList.add("has-no");
           if (key === currentTodayKey) button.classList.add("is-today");
-          if (key === selectedDayKey) button.classList.add("is-selected");
 
           const number = document.createElement("span");
           number.className = "day-number";
@@ -1158,14 +1227,21 @@
           button.classList.toggle("is-active", isActive);
           button.setAttribute("aria-pressed", String(isActive));
         });
+        els.dayTimeBlock.hidden = dialogStatus !== "yes";
       }
 
       function openDayDialog(key) {
         if (key > currentTodayKey) return;
         dialogDayKey = key;
-        selectedDayKey = key;
         const record = getRecord(key);
         dialogStatus = record && record.status ? record.status : null;
+        if (dialogStatus === "yes" && record && record.status === "yes" && record.timeKnown) {
+          const time = new Date(record.toiletAt);
+          els.dayTime.value = `${pad2(time.getHours())}:${pad2(time.getMinutes())}`;
+        } else {
+          els.dayTime.value = "";
+        }
+        els.dayTimeBlock.hidden = dialogStatus !== "yes";
         els.dayDialogTitle.textContent = formatFullDate(key);
         els.deleteDay.hidden = !record;
         updateDialogChoices();
@@ -1190,10 +1266,72 @@
         if (!dialogDayKey) return;
         const key = dialogDayKey;
         const status = dialogStatus;
-        const saved = status ? await setRecord(key, status) : await deleteRecord(key);
+        let timeOverride = null;
+        if (status === "yes" && els.dayTime.value) {
+          const [hours, minutes] = els.dayTime.value.split(":").map(Number);
+          const time = parseDateKey(key);
+          time.setHours(hours, minutes, 0, 0);
+          timeOverride = { toiletAt: time.getTime(), timeKnown: true };
+        }
+        const saved = status ? await setRecord(key, status, timeOverride) : await deleteRecord(key);
         if (!saved) return;
         closeDayDialog();
         showToast(status ? "记录已保存" : "记录已清除");
+      }
+
+      function renderEditRecordList() {
+        const keys = Object.keys(records).sort().reverse();
+        const fragment = document.createDocumentFragment();
+        if (!keys.length) {
+          const empty = document.createElement("div");
+          empty.className = "edit-empty";
+          empty.textContent = "暂无记录";
+          fragment.appendChild(empty);
+          els.editRecordList.replaceChildren(fragment);
+          return;
+        }
+
+        keys.forEach((key) => {
+          const record = records[key];
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "edit-record-row";
+          button.dataset.editDate = key;
+
+          const main = document.createElement("span");
+          main.className = "edit-record-main";
+          const date = document.createElement("span");
+          date.className = "edit-record-date";
+          date.textContent = formatFullDate(key);
+          const meta = document.createElement("span");
+          meta.className = "edit-record-meta";
+          meta.textContent = record.status === "yes"
+            ? record.timeKnown ? `如厕时间：${formatTime(record.toiletAt)}` : "如厕时间：仅记录日期"
+            : "当天未如厕";
+          main.append(date, meta);
+
+          const side = document.createElement("span");
+          side.className = "edit-record-side";
+          const status = document.createElement("span");
+          status.className = `edit-status ${record.status}`;
+          status.textContent = record.status === "yes" ? "已如厕" : "未如厕";
+          const arrow = document.createElement("span");
+          arrow.className = "edit-row-arrow";
+          arrow.textContent = "›";
+          side.append(status, arrow);
+          button.append(main, side);
+          fragment.appendChild(button);
+        });
+        els.editRecordList.replaceChildren(fragment);
+      }
+
+      function openEditDataDialog() {
+        renderEditRecordList();
+        if (!els.editDataDialog.open) els.editDataDialog.showModal();
+      }
+
+      function closeEditDataDialog() {
+        if (els.editDataDialog.open) els.editDataDialog.close();
       }
 
       function downloadFile(filename, content, mimeType) {
@@ -1208,35 +1346,49 @@
         window.setTimeout(() => URL.revokeObjectURL(url), 1500);
       }
 
-      function exportCsvFile() {
+      function exportExcelFile() {
         const keys = Object.keys(records).sort();
         if (!keys.length) {
           showToast("还没有记录可导出");
           return;
         }
-        const escapeCell = (value) => {
-          let text = value == null ? "" : String(value);
-          if (/^[=+\-@]/.test(text)) text = `'${text}`;
-          return `"${text.replace(/"/g, '""')}"`;
-        };
-        const rows = [["日期", "星期", "是否如厕", "如厕时间", "最后更新"]];
+
+        const escapeXml = (value) => String(value == null ? "" : value).replace(/[<>&"']/g, (char) => ({
+          "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;"
+        })[char]);
+        const cell = (value, style = "") => `<Cell${style ? ` ss:StyleID="${style}"` : ""}><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`;
+        const rows = [
+          `<Row>${["日期", "星期", "是否如厕", "如厕时间", "最后更新"].map((value) => cell(value, "Header")).join("")}</Row>`
+        ];
+
         keys.forEach((key) => {
           const record = records[key];
           const date = parseDateKey(key);
           const toiletTime = record.status === "yes"
             ? record.timeKnown ? formatDateTime(record.toiletAt) : `${key}（仅日期）`
             : "";
-          rows.push([
+          rows.push(`<Row>${[
             key,
             WEEKDAYS[date.getDay()],
             record.status === "yes" ? "已如厕" : "未如厕",
             toiletTime,
             record.updatedAt ? formatDateTime(record.updatedAt) : ""
-          ]);
+          ].map((value) => cell(value)).join("")}</Row>`);
         });
-        const csv = "\uFEFF" + rows.map((row) => row.map(escapeCell).join(",")).join("\r\n");
-        downloadFile(`奶奶如厕记录_${currentTodayKey}.csv`, csv, "text/csv;charset=utf-8");
-        showToast("CSV 已导出");
+
+        const xml = [
+          '<?xml version="1.0" encoding="UTF-8"?>',
+          '<?mso-application progid="Excel.Sheet"?>',
+          '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">',
+          '<Styles><Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Microsoft YaHei" ss:Size="11"/></Style><Style ss:ID="Header"><Font ss:Bold="1"/><Interior ss:Color="#E8F2EB" ss:Pattern="Solid"/></Style></Styles>',
+          '<Worksheet ss:Name="如厕记录"><Table>',
+          '<Column ss:Width="130"/><Column ss:Width="100"/><Column ss:Width="110"/><Column ss:Width="190"/><Column ss:Width="190"/>',
+          rows.join(""),
+          '</Table></Worksheet></Workbook>'
+        ].join("\r\n");
+
+        downloadFile(`奶奶如厕记录_${currentTodayKey}.xls`, xml, "application/vnd.ms-excel;charset=utf-8");
+        showToast("Excel 已导出");
       }
 
       function backupJsonFile() {
@@ -1292,7 +1444,6 @@
         if (nextKey !== currentTodayKey) {
           currentTodayKey = nextKey;
           viewMonth = startOfMonth(new Date());
-          selectedDayKey = currentTodayKey;
           renderAll();
           showToast("新的一天，已切换到今天的记录");
           return;
@@ -1332,7 +1483,6 @@
       els.goToday.addEventListener("click", () => {
         currentTodayKey = dateKey(new Date());
         viewMonth = startOfMonth(new Date());
-        selectedDayKey = currentTodayKey;
         renderAll();
       });
 
@@ -1377,8 +1527,12 @@
         if (!inside) closeDayDialog();
       });
 
-      els.exportCsv.addEventListener("click", () => {
-        exportCsvFile();
+      els.editData.addEventListener("click", () => {
+        els.dataMenu.open = false;
+        openEditDataDialog();
+      });
+      els.exportExcel.addEventListener("click", () => {
+        exportExcelFile();
         els.dataMenu.open = false;
       });
       els.backupData.addEventListener("click", () => {
@@ -1390,6 +1544,21 @@
         els.dataMenu.open = false;
       });
       els.restoreInput.addEventListener("change", () => restoreBackupFile(els.restoreInput.files[0]));
+
+      els.closeEditDataDialog.addEventListener("click", closeEditDataDialog);
+      els.editDataDialog.addEventListener("click", (event) => {
+        if (event.target !== els.editDataDialog) return;
+        const rect = els.editDataDialog.getBoundingClientRect();
+        const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+        if (!inside) closeEditDataDialog();
+      });
+      els.editRecordList.addEventListener("click", (event) => {
+        const row = event.target.closest("[data-edit-date]");
+        if (!row) return;
+        const key = row.dataset.editDate;
+        closeEditDataDialog();
+        openDayDialog(key);
+      });
 
       els.clearAll.addEventListener("click", async () => {
         if (!Object.keys(records).length) {
